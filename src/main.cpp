@@ -7,6 +7,7 @@
 #include <zmq.h>
 #endif
 #include <chrono>
+#include <memory>
 
 using namespace std;
 using namespace ToxVPN;
@@ -48,15 +49,28 @@ int netmode = MODE_TUN;
 
 bool saveState(Tox* tox) {
   size_t size = tox_get_savedata_size(tox);
-  uint8_t* savedata = new uint8_t[size];
-  tox_get_savedata(tox, savedata);
-  int fd = open("savedata", O_TRUNC | O_WRONLY | O_CREAT, 0644);
-  assert(fd);
-  ssize_t written = write(fd, savedata, size);
-  assert(written > 0); // FIXME: check even if NDEBUG is disabled
+  auto savedata = make_unique<uint8_t[]>(size);
+  tox_get_savedata(tox, savedata.get());
+  int fd = open("savedata.new", O_TRUNC | O_WRONLY | O_CREAT, 0644);
+  if (fd < 0) {
+    perror("cant open savedata.new");
+    return false;
+  }
+  ssize_t written = write(fd, savedata.get(), size);
+  if (written != size) {
+    printf("failed to write to savedata.new, %d bytes written out of %d\n", written, size);
+    close(fd);
+    return false;
+  }
+  int ret = fdatasync(fd);
+  if (ret == -1) {
+    perror("cant fdatasync to savedata.new");
+    close(fd);
+    return false;
+  }
   close(fd);
-  delete[] savedata;
-  return written > 0;
+  rename("savedata.new","savedata");
+  return true;
 }
 
 void do_bootstrap(Tox* tox, ToxVPNCore* toxvpn) {
@@ -362,6 +376,7 @@ int main(int argc, char** argv) {
     memset(&interupt, 0, sizeof(interupt));
     interupt.sa_handler = &handle_int;
     sigaction(SIGINT, &interupt, nullptr);
+    sigaction(SIGTERM, &interupt, nullptr);
 #endif
 
     json configRoot;
