@@ -321,7 +321,7 @@ struct zmq_ctx_deleter {
     void operator()(void *zmq) const { zmq_ctx_term(zmq); }
 };
 
-using zmq_ptr = std::unique_ptr<void, zmq_ctx_deleter>;
+//using zmq_ptr = std::unique_ptr<void, zmq_ctx_deleter>;
 #endif
 
 struct tox_options_deleter {
@@ -337,7 +337,8 @@ int main(int argc, char** argv) {
 #endif
 
 #ifdef ZMQ
-    zmq_ptr zmq(zmq_ctx_new());
+    //zmq_ptr zmq(zmq_ctx_new());
+    void* zmq = zmq_ctx_new();
 #endif
     ToxVPNCore toxvpn;
 
@@ -609,7 +610,7 @@ int main(int argc, char** argv) {
         puts("error, -l is linux only");
         return -1;
 #elif defined(ZMQ)
-        toxvpn.listener = new SocketListener(mynic, unixSocket, zmq.get());
+        toxvpn.listener = new SocketListener(mynic, unixSocket, zmq);
 #else
         toxvpn.listener = new SocketListener(mynic, unixSocket);
 #endif
