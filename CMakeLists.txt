@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.10)
 project(toxvpn)
 
 set(BOOTSTRAP_PATH "${CMAKE_INSTALL_PREFIX}/share/toxvpn/bootstrap.json")
